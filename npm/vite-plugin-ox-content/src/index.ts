@@ -10,7 +10,7 @@ import type { Plugin, ViteDevServer, ResolvedConfig } from "vite";
 import { createMarkdownEnvironment } from "./environment";
 import { transformMarkdown } from "./transform";
 import { extractDocs, generateMarkdown, writeDocs, resolveDocsOptions } from "./docs";
-import { buildSsg, resolveSsgOptions } from "./ssg";
+import { buildSsg, createExcludeMatcher, resolveSsgOptions } from "./ssg";
 import {
   resolveSearchOptions,
   buildSearchIndex,
@@ -295,10 +295,19 @@ function createSsgPlugin(
 
       const root = getRoot();
       const srcDir = path.resolve(root, resolvedOptions.srcDir);
+      const isExcluded = createExcludeMatcher(srcDir, resolvedOptions.exclude);
       devServer.middlewares.use(createDevServerMiddleware(resolvedOptions, root, ssgDevCache));
 
       devServer.watcher.on("add", (file: string) => {
-        notifySsgFileAddedOrRemoved(devServer, resolvedOptions, ssgDevCache, srcDir, file, "add");
+        notifySsgFileAddedOrRemoved(
+          devServer,
+          resolvedOptions,
+          ssgDevCache,
+          srcDir,
+          isExcluded,
+          file,
+          "add",
+        );
       });
       devServer.watcher.on("unlink", (file: string) => {
         notifySsgFileAddedOrRemoved(
@@ -306,12 +315,17 @@ function createSsgPlugin(
           resolvedOptions,
           ssgDevCache,
           srcDir,
+          isExcluded,
           file,
           "unlink",
         );
       });
       devServer.watcher.on("change", (file: string) => {
-        if (file.startsWith(srcDir) && isMarkdownFilePath(file, resolvedOptions.extensions)) {
+        if (
+          file.startsWith(srcDir) &&
+          isMarkdownFilePath(file, resolvedOptions.extensions) &&
+          !isExcluded(file)
+        ) {
           invalidatePageCache(ssgDevCache, file);
         }
       });
@@ -344,10 +358,15 @@ function notifySsgFileAddedOrRemoved(
   resolvedOptions: ResolvedOptions,
   ssgDevCache: ReturnType<typeof createDevServerCache>,
   srcDir: string,
+  isExcluded: (file: string) => boolean,
   file: string,
   type: "add" | "unlink",
 ): void {
-  if (!file.startsWith(srcDir) || !isMarkdownFilePath(file, resolvedOptions.extensions)) {
+  if (
+    !file.startsWith(srcDir) ||
+    !isMarkdownFilePath(file, resolvedOptions.extensions) ||
+    isExcluded(file)
+  ) {
     return;
   }
 
@@ -431,6 +450,7 @@ function resolveOptions(options: OxContentOptions): ResolvedOptions {
     outDir: options.outDir ?? "dist",
     base: options.base ?? "/",
     extensions: normalizeMarkdownExtensions(options.extensions),
+    exclude: options.exclude ?? [],
     ssg: resolveSsgOptions(options.ssg),
     gfm: options.gfm ?? true,
     footnotes: options.footnotes ?? true,

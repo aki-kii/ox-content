@@ -410,7 +410,11 @@ export function createDevServerMiddleware(
 
       // Build navigation if not cached
       if (!cache.navGroups) {
-        const markdownFiles = await collectMarkdownFiles(srcDir, options.extensions);
+        const markdownFiles = await collectMarkdownFiles(
+          srcDir,
+          options.extensions,
+          options.exclude,
+        );
         cache.navGroups =
           resolveNavigationGroups(options.ssg.navigation, base, options.ssg.extension) ??
           (options.ssg.theme?.sidebar.length

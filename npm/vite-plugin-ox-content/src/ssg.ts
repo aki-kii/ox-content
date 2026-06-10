@@ -4,6 +4,7 @@
 
 import * as fs from "fs/promises";
 import * as path from "path";
+import picomatch from "picomatch";
 import { transformMarkdown } from "./transform";
 import { generateOgImages } from "./og-image";
 import type { OgImagePageEntry } from "./og-image";
@@ -446,13 +447,34 @@ export function formatTitle(name: string): string {
 }
 
 /**
- * Collects all markdown files from the source directory.
+ * Builds a predicate that matches file paths against glob patterns, relative to `srcDir`.
+ */
+export function createExcludeMatcher(
+  srcDir: string,
+  patterns: readonly string[],
+): (file: string) => boolean {
+  if (patterns.length === 0) {
+    return () => false;
+  }
+  const isMatch = picomatch([...patterns]);
+  return (file: string): boolean => {
+    const rel = path.relative(srcDir, file).split(path.sep).join("/");
+    return isMatch(rel);
+  };
+}
+
+/**
+ * Collects all markdown files from the source directory, skipping any that match `exclude` patterns.
  */
 export async function collectMarkdownFiles(
   srcDir: string,
   extensions: readonly string[] = DEFAULT_MARKDOWN_EXTENSIONS,
+  exclude: readonly string[] = [],
 ): Promise<string[]> {
-  return importNapiModuleSync().collectSsgMarkdownFiles(srcDir, [...extensions]);
+  const all = importNapiModuleSync().collectSsgMarkdownFiles(srcDir, [...extensions]);
+  if (exclude.length === 0) return all;
+  const isExcluded = createExcludeMatcher(srcDir, exclude);
+  return all.filter((file: string) => !isExcluded(file));
 }
 
 /**
@@ -539,7 +561,7 @@ export async function buildSsg(
 
   await cleanOutputDirectory(ssgOptions, outDir);
 
-  const markdownFiles = await collectMarkdownFiles(srcDir, options.extensions);
+  const markdownFiles = await collectMarkdownFiles(srcDir, options.extensions, options.exclude);
   const context = await createBuildSsgContext(options, root, srcDir, outDir, markdownFiles);
   const collected = await collectPageResults(context, markdownFiles);
   errors.push(...collected.errors);

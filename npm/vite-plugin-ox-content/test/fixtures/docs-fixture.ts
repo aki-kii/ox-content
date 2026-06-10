@@ -97,6 +97,7 @@ export function createDocsResolvedOptions(
     outDir: "dist",
     base: "/",
     extensions: [".md", ".markdown", ".mdx"],
+    exclude: [],
     ssg: {
       enabled: true,
       extension: ".html",

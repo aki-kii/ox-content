@@ -144,6 +144,10 @@ Interactive web playground for testing Markdown parsing.
 
 Static Site Generation example using Vite.
 
+### [Excluding Files](./exclude.md)
+
+Skip template files and drafts from page generation, navigation, and search.
+
 ## Running Examples
 
 ```bash

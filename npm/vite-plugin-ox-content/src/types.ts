@@ -243,6 +243,12 @@ export interface OxContentOptions {
   extensions?: string[];
 
   /**
+   * Glob patterns (relative to `srcDir`) for files to exclude from SSG processing.
+   * @default []
+   */
+  exclude?: string[];
+
+  /**
    * SSG (Static Site Generation) options.
    * Set to false to disable SSG completely.
    * @default { enabled: true }
@@ -456,6 +462,7 @@ export interface ResolvedOptions {
   outDir: string;
   base: string;
   extensions: string[];
+  exclude: string[];
   ssg: ResolvedSsgOptions;
   gfm: boolean;
   footnotes: boolean;

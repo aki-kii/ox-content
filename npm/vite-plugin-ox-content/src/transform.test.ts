@@ -205,6 +205,7 @@ function createResolvedOptions(overrides: Partial<ResolvedOptions> = {}): Resolv
     outDir: "dist",
     base: "/",
     extensions: [".md", ".markdown", ".mdx"],
+    exclude: [],
     ssg: {
       enabled: true,
       extension: ".html",

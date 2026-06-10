@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   buildNavItems,
   buildThemeNavItems,
+  createExcludeMatcher,
   formatTitle,
   generateBareHtmlPage,
   getHref,
@@ -20,6 +21,21 @@ describe("resolveSsgOptions", () => {
 
   it("enables git timestamps when requested", () => {
     expect(resolveSsgOptions({ lastUpdated: true }).lastUpdated).toBe(true);
+  });
+});
+
+describe("createExcludeMatcher", () => {
+  const srcDir = path.resolve("/abs/content");
+
+  it("returns a no-op matcher when no patterns are provided", () => {
+    const matcher = createExcludeMatcher(srcDir, []);
+    expect(matcher(path.join(srcDir, "anything.md"))).toBe(false);
+  });
+
+  it("matches against paths relative to srcDir, not absolute paths", () => {
+    const matcher = createExcludeMatcher(srcDir, ["**/_*.md"]);
+    expect(matcher(path.join(srcDir, "nested/_partial.md"))).toBe(true);
+    expect(matcher(path.join(srcDir, "nested/post.md"))).toBe(false);
   });
 });
 
